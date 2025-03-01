@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>User Profile</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <button id="logout-btn">Logout</button>
+        </nav>
+    </header>
+
+    <main>
+        <section id="profile-section">
+            <h2>Welcome, <span id="username"></span></h2>
+            <img id="profile-pic" src="default-profile.png" alt="Profile Picture">
+            <p><strong>Email:</strong> <span id="user-email"></span></p>
+            <p><strong>Bio:</strong> <span id="user-bio"></span></p>
+
+            <h3>Update Profile</h3>
+            <form id="update-profile-form">
+                <label for="bio">New Bio:</label>
+                <textarea id="bio" name="bio"></textarea>
+
+                <label for="profile-picture">New Profile Picture:</label>
+                <input type="file" id="profile-picture" name="profile-picture">
+
+                <button type="submit">Update Profile</button>
+            </form>
+        </section>
+    </main>
+
+    <script src="auth.js"></script>
+    <script src="profile.js"></script>
+</body>
+</html>
