@@ -7,27 +7,54 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-
-    <h1>Welcome to Fanta-sci</h1>
-    
-    <div id="auth-container">
-        <h2>Login</h2>
-        <input type="email" id="login-email" placeholder="Email" required>
-        <input type="password" id="login-password" placeholder="Password" required>
-        <button id="login-btn">Login</button>
-        <p>Don't have an account? <a href="#" id="show-signup">Sign Up</a></p>
+    <div class="sidebar">
+        <ul>
+            <li><a href="#">Home</a></li>
+            <li><a href="#">Search</a></li>
+            <li><a href="#">Profile</a></li>
+            <li><a href="#">Social</a></li>
+        </ul>
     </div>
 
-    <div id="signup-container" style="display: none;">
-        <h2>Sign Up</h2>
-        <input type="text" id="signup-username" placeholder="Username" required>
-        <input type="email" id="signup-email" placeholder="Email" required>
-        <input type="password" id="signup-password" placeholder="Password" required>
-        <button id="signup-btn">Sign Up</button>
-        <p>Already have an account? <a href="#" id="show-login">Login</a></p>
+    <div class="main-content">
+        <header class="top-header">
+            <h1>Fanta-sci</h1>
+        </header>
+
+        <!-- Notification area -->
+        <div id="notification-area"></div>
+
+        <main>
+            <div id="auth-container">
+                <h2>Login</h2>
+                <div class="form-group">
+                    <input type="email" id="login-email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="login-password" placeholder="Password" required>
+                </div>
+                <button id="login-btn">Login</button>
+                <p>Don't have an account? <a href="#" id="show-signup">Sign Up</a></p>
+            </div>
+
+            <div id="signup-container" style="display: none;">
+                <h2>Sign Up</h2>
+                <div class="form-group">
+                    <input type="text" id="signup-username" placeholder="Username" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="signup-email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="signup-password" placeholder="Password" required>
+                    <small class="help-text">Password must be at least 6 characters</small>
+                </div>
+                <button id="signup-btn">Sign Up</button>
+                <p>Already have an account? <a href="#" id="show-login">Login</a></p>
+            </div>
+        </main>
     </div>
 
     <script src="auth.js"></script>
-
 </body>
 </html>

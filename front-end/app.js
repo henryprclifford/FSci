@@ -1,137 +1,218 @@
-window.onload = () => {
-    console.log('app.js loaded'); // Confirm JS file is loaded
+// Utility functions for common operations
+const utils = {
+    showNotification: (message, type = 'info') => {
+        const notificationArea = document.getElementById('notification-area');
+        if (!notificationArea) {
+            console.error('Notification area not found in DOM');
+            return;
+        }
 
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        
+        const closeBtn = document.createElement('span');
+        closeBtn.className = 'notification-close';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.onclick = () => notification.remove();
+        notification.appendChild(closeBtn);
+        
+        notificationArea.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode === notificationArea) {
+                notificationArea.removeChild(notification);
+            }
+        }, 5000);
+    },
+    
+    validateToken: () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            return false;
+        }
+        return true;
+    },
+    
+    requireAuth: () => {
+        if (!utils.validateToken()) {
+            utils.showNotification('Please log in to continue', 'error');
+            window.location.href = "login.html";
+            return false;
+        }
+        return true;
+    }
+};
+
+window.onload = () => {
+    console.log('app.js loaded');
+    
+    if (!utils.requireAuth()) {
+        return;
+    }
+    
     const searchContainer = document.getElementById('search-container');
     const bookList = document.getElementById('book-list');
     const recentSection = document.getElementById('recent-searches');
     const submitButton = document.getElementById('submit-btn');
     const logoutButton = document.getElementById('logout-btn');
-    const profileSection = document.getElementById('user-profile');
-
-    // Check if elements are found
-    if (!searchContainer || !submitButton) {
-        console.error("Required elements not found in the DOM!");
-        return;
-    } else {
-        console.log("Search container and submit button found:", searchContainer, submitButton);
+    
+    if (!document.getElementById('notification-area')) {
+        const notificationArea = document.createElement('div');
+        notificationArea.id = 'notification-area';
+        document.body.appendChild(notificationArea);
     }
 
-    console.log("Event listener is being added to the form...");
-    
-    // Fetch user profile on load
+    if (!searchContainer || !submitButton) {
+        console.error("Required elements not found in the DOM!");
+        utils.showNotification("Page elements missing. Please reload the page.", "error");
+        return;
+    }
+
+    fetchRecentSearches();
     fetchUserProfile();
 
-    // Fetch recent searches on page load
-    fetchRecentSearches();
-
-    // Handle button click instead of form submit
     submitButton.addEventListener('click', async () => {
-        console.log('Button clicked');
-
-        const genre = document.getElementById('genre').value.trim();
-        const author = document.getElementById('author').value.trim();
-        const year = document.getElementById('year').value.trim();
-
-        if (!genre) {
-            bookList.innerHTML = '<li class="error-message">Please enter a genre</li>';
-            return;
-        }
-
+        console.log('Get Recommendations button clicked');
         try {
-            bookList.innerHTML = '<li class="loading">Loading recommendations...</li>';
-            
-            const requestBody = { genre, author, year };
-            console.log('Request body:', requestBody);
+            const genre = document.getElementById('genre').value.trim();
+            const author = document.getElementById('author').value.trim();
+            const year = document.getElementById('year').value.trim();
+    
+            // ADDED FOR DEBUGGING:
+            console.log('[DEBUG] Genre:', JSON.stringify(genre));
+            console.log('[DEBUG] Author:', JSON.stringify(author));
+            console.log('[DEBUG] Year:', JSON.stringify(year));
 
+            if (!genre) {
+                utils.showNotification('Please enter a genre', 'error');
+                bookList.innerHTML = '<li class="error-message">Please enter a genre</li>';
+                return;
+            }
+    
+            bookList.innerHTML = '<li class="loading"><div class="loader"></div>Loading recommendations...</li>';
+            
+            const requestBody = { 
+                genre: genre,
+                author: author,
+                year: year
+            };
+            
+            // ADDED FOR DEBUGGING:
+            console.log('[DEBUG] Request body:', JSON.stringify(requestBody));
+            
+            const token = localStorage.getItem("token");
+            if (!token) {
+                utils.showNotification('Authentication required', 'error');
+                throw new Error("User not authenticated");
+            }
+    
+            console.log('Making API request to:', 'http://127.0.0.1:5000/recommend');
+            
             const response = await fetch('http://127.0.0.1:5000/recommend', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'Origin': 'http://127.0.0.1:5500'
+                    'Authorization': `Bearer ${token}`
                 },
-                credentials: 'omit',
-                mode: 'cors',
                 body: JSON.stringify(requestBody)
             });
-
+    
             console.log('Response status:', response.status);
-
+            
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Server error response:', errorText);
-                throw new Error(`Server error: ${response.status}`);
+                utils.showNotification(`Error: ${response.statusText}`, 'error');
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
             }
-
+    
             const data = await response.json();
-            console.log('Server response:', data);
-
+            console.log('Response data:', data);
+            
             if (!data.recommendations) {
+                utils.showNotification('Invalid response from server', 'error');
                 throw new Error('Invalid response format from server');
             }
-
+    
+            fetchRecentSearches();
             displayBooks(data.recommendations);
-            await fetchRecentSearches();
-
+            utils.showNotification(`Found ${data.recommendations.length} recommendations`, 'success');
+    
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error in search:', error);
             bookList.innerHTML = `<li class="error-message">${error.message}</li>`;
         }
     });
 
-    // Function to fetch recent searches
+    if (logoutButton) {
+        logoutButton.addEventListener("click", () => {
+            console.log('Logout button clicked');
+            localStorage.removeItem("token");
+            localStorage.removeItem("userId");
+            utils.showNotification('Logged out successfully', 'info');
+            window.location.href = "login.html";
+        });
+    } else {
+        console.error("Logout button not found");
+    }
+
     async function fetchRecentSearches() {
         try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                recentSection.innerHTML = '<p>Please log in to view recent searches</p>';
+                return;
+            }
+            
+            recentSection.innerHTML = '<h2>Recent Searches</h2><div class="loading-small"><div class="loader"></div>Loading...</div>';
+            
             const response = await fetch('http://127.0.0.1:5000/recent-searches', {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
-                    'Origin': 'http://127.0.0.1:5500'
-                },
-                credentials: 'omit',
-                mode: 'cors'
+                    'Authorization': `Bearer ${token}`
+                }
             });
             
+            if (!response.ok) {
+                throw new Error(`Failed to fetch recent searches: ${response.statusText}`);
+            }
+            
             const data = await response.json();
-            console.log('Recent Searches Response:', data);
-
-            if (data && data.recent_searches) {
+            if (data && data.recent_searches && data.recent_searches.length > 0) {
                 displayRecentSearches(data.recent_searches);
             } else {
-                console.error('Unexpected data format for recent searches:', data);
+                recentSection.innerHTML = '<h2>Recent Searches</h2><p>No recent searches</p>';
             }
         } catch (error) {
             console.error('Error fetching recent searches:', error);
-            recentSection.innerHTML = '<p>Error loading recent searches</p>';
+            recentSection.innerHTML = '<h2>Recent Searches</h2><p>Error loading recent searches</p>';
         }
     }
 
-    // Function to display book recommendations
     function displayBooks(books) {
-        console.log('Starting to display books:', books);
         bookList.innerHTML = '';
-
         if (!Array.isArray(books)) {
             console.error('Books is not an array:', books);
             bookList.innerHTML = '<li class="error-message">Invalid response format</li>';
             return;
         }
-
         if (books.length === 0) {
             bookList.innerHTML = '<li class="error-message">No books found. Try different search criteria.</li>';
             return;
         }
-
         books.forEach((book, index) => {
             try {
-                console.log(`Processing book ${index}:`, book);
                 const li = document.createElement('li');
                 li.className = 'book-card';
 
                 const coverUrl = book.cover_url && book.cover_url !== 'None' ? book.cover_url : null;
-                const coverImg = coverUrl ?
-                    `<img src="${coverUrl}" alt="${book.title} cover" class="book-cover" onerror="this.parentElement.innerHTML='<div class=\'no-cover\'>No Cover</div>'">` :
-                    '<div class="no-cover">No Cover</div>';
+                const coverImg = coverUrl
+                    ? `<img src="${coverUrl}" alt="${encodeURIComponent(book.title || 'Book cover')}" class="book-cover" 
+                         onerror="this.parentElement.innerHTML='<div class=&quot;no-cover&quot;>No Cover</div>';">`
+                    : '<div class="no-cover">No Cover</div>';
 
                 li.innerHTML = `
                     ${coverImg}
@@ -141,7 +222,6 @@ window.onload = () => {
                         <p><strong>Year:</strong> ${book.year || 'N/A'}</p>
                     </div>
                 `;
-
                 bookList.appendChild(li);
             } catch (error) {
                 console.error(`Error processing book ${index}:`, error);
@@ -149,132 +229,62 @@ window.onload = () => {
         });
     }
 
-    // Function to display recent searches
     function displayRecentSearches(searches) {
-        if (!Array.isArray(searches)) {
-            console.error('Recent searches data is not an array:', searches);
-            return;
-        }
-
-        recentSection.innerHTML = '<h3>Recent Searches:</h3>';
-
-        if (searches.length === 0) {
-            recentSection.innerHTML += '<p>No recent searches</p>';
-            return;
-        }
-
+        recentSection.innerHTML = '<h2>Recent Searches</h2>';
         const ul = document.createElement('ul');
-        ul.className = 'recent-searches-list';
-
-        searches.forEach(search => {
+        ul.className = 'recent-search-list';
+        searches.forEach((s) => {
             const li = document.createElement('li');
-            li.textContent = `Genre: ${search.genre || 'None'} | Author: ${search.author || 'Any'} | Year: ${search.year || 'Any'}`;
+            li.className = 'recent-search-item';
+            li.innerHTML = `<span class="search-genre">Genre: ${s.genre}</span> | 
+                           <span class="search-author">Author: ${s.author}</span> | 
+                           <span class="search-year">Year: ${s.year}</span>`;
+            
+            // Repeat this search on click
+            li.addEventListener('click', () => {
+                document.getElementById('genre').value = s.genre === 'Any' ? '' : s.genre;
+                document.getElementById('author').value = s.author === 'Any' ? '' : s.author;
+                document.getElementById('year').value = s.year === 'Any' ? '' : s.year;
+                document.getElementById('submit-btn').click();
+            });
+            
             ul.appendChild(li);
         });
-
         recentSection.appendChild(ul);
-        console.log('Recent searches displayed:', searches); // Debug log
     }
 
-    // Function to fetch user profile
     async function fetchUserProfile() {
-        console.log("Fetching user profile...");
-        
         try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                console.error("No token found. User might not be logged in.");
+                return;
+            }
             const response = await fetch('http://127.0.0.1:5000/profile', {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 }
             });
-
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-
             const data = await response.json();
-            console.log("User Profile:", data);
 
-            document.getElementById("profile-username").textContent = data.username;
-            document.getElementById("profile-email").textContent = data.email;
-            document.getElementById("profile-bio").textContent = data.bio;
-            document.getElementById("profile-pic").src = data.profile_picture || "default.png";
+            const usernameElem = document.getElementById("profile-username");
+            const emailElem = document.getElementById("profile-email");
+            const bioElem = document.getElementById("profile-bio");
+            const picElem = document.getElementById("profile-pic");
+
+            if (usernameElem) usernameElem.textContent = data.username;
+            if (emailElem) emailElem.textContent = data.email;
+            if (bioElem) bioElem.textContent = data.bio || "No bio yet";
+            if (picElem) picElem.src = data.profile_picture || "default-profile.png";
 
         } catch (error) {
             console.error("Error fetching profile:", error);
+            utils.showNotification('Failed to load profile information', 'error');
         }
     }
-
-    // Function to handle logout
-    if (logoutButton) {
-        logoutButton.addEventListener("click", async () => {
-            try {
-                const response = await fetch("http://127.0.0.1:5000/logout", {
-                    method: "POST",
-                    credentials: "include"
-                });
-                const data = await response.json();
-                alert(data.message);
-                localStorage.removeItem("token");
-                window.location.href = "login.html"; // Redirect to login page
-            } catch (error) {
-                console.error("Logout error:", error);
-            }
-        });
-    }
-
-    // Function to update user profile
-async function updateUserProfile() {
-    const newBio = document.getElementById("edit-bio").value.trim();
-    const profilePicInput = document.getElementById("edit-profile-pic");
-    let profilePicUrl = null;
-
-    // If a new profile picture is selected, upload it
-    if (profilePicInput.files.length > 0) {
-        const formData = new FormData();
-        formData.append("profile_picture", profilePicInput.files[0]);
-
-        try {
-            const uploadResponse = await fetch("http://127.0.0.1:5000/upload-profile-pic", {
-                method: "POST",
-                body: formData
-            });
-
-            const uploadData = await uploadResponse.json();
-            if (!uploadResponse.ok) throw new Error(uploadData.error);
-            profilePicUrl = uploadData.profile_picture;
-        } catch (error) {
-            console.error("Error uploading profile picture:", error);
-            alert("Failed to upload profile picture.");
-            return;
-        }
-    }
-
-    // Send updated bio and profile picture URL
-    try {
-        const response = await fetch("http://127.0.0.1:5000/profile", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({
-                bio: newBio,
-                profile_picture: profilePicUrl
-            })
-        });
-
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error);
-
-        alert("Profile updated successfully!");
-        fetchUserProfile(); // Reload profile after update
-    } catch (error) {
-        console.error("Error updating profile:", error);
-        alert("Failed to update profile.");
-    }
-}
-
-// Add event listener to save button
-document.getElementById("save-profile-btn").addEventListener("click", updateUserProfile);
-
 };

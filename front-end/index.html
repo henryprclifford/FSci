@@ -5,47 +5,49 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fanta-sci</title>
+    <title>Fanta-sci - Search</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        .error-message {
-            color: red;
-            padding: 10px;
-            border: 1px solid red;
-            margin: 10px 0;
-            background-color: #fff3f3;
-        }
-        .loading {
-            color: #666;
-            padding: 10px;
-            text-align: center;
-        }
-    </style>
 </head>
 <body>
-
-    <h1>Fanta-sci</h1>
-    <nav>
-        <a href="profile.html">Profile</a>
-        <button id="logout-btn">Logout</button>
-    </nav>
-
-    <!-- Add form element with onsubmit handler -->
-    <div id="search-container">
-        <input type="text" id="genre" placeholder="Enter genre" required />
-        <input type="text" id="author" placeholder="Enter author (optional)" />
-        <input type="number" id="year" placeholder="Enter publication year (optional)" />
-        <button type="button" id="submit-btn">Get Recommendations</button>
+    <div class="sidebar">
+        <ul>
+            <!-- Placeholder "Home" link for future use -->
+            <li><a href="#">Home</a></li>
+            <!-- Active link points to the search page -->
+            <li><a href="index.html" class="active-link">Search</a></li>
+            <li><a href="profile.html">Profile</a></li>
+            <li><a href="#">Social</a></li>
+        </ul>
     </div>
 
-    <!-- Book Recommendations -->
-    <h2>Recommended Books:</h2>
-    <ul id="book-list"></ul>
+    <div class="main-content">
+        <header class="top-header">
+            <h1>Fanta-sci</h1>
+            <div>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </header>
 
-    <!-- Recent Searches Section -->
-    <div id="recent-searches"></div>
+        <!-- Notification area -->
+        <div id="notification-area"></div>
 
-    <!-- JavaScript -->
+        <main>
+            <div id="search-container">
+                <input type="text" id="genre" placeholder="Enter genre" required />
+                <input type="text" id="author" placeholder="Enter author (optional)" />
+                <input type="number" id="year" placeholder="Enter publication year (optional)" />
+                <button type="button" id="submit-btn">Get Recommendations</button>
+            </div>
+
+            <!-- Search Results Section -->
+            <h2>Search Results:</h2>
+            <ul id="book-list"></ul>
+
+            <!-- Recent Searches Section -->
+            <div id="recent-searches"></div>
+        </main>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
